@@ -46,13 +46,13 @@ export class AuthService {
             throw new ConflictException('Invalid credentials');
         }
 
-        const pwMatches = await bcrypt.compare(dto.password, user.password);
+        const pwMatches = await bcrypt.compare(dto.password, user.password, );
 
         if (!pwMatches) {
             throw new ConflictException('Invalid credentials');
         }
 
-        const payload = { sub: user.id, email: user.email };
+        const payload = { sub: user.id, email: user.email, role: user.role, plan: user.plan };
         const token = await this.jwtService.signAsync(payload);
         return { access_token: token };
     }

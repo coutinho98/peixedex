@@ -1,6 +1,11 @@
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AuthGuard } from '@nestjs/passport';
+import { Roles } from './auth/decorator/roles.decorator';
+import { RolesGuard } from './auth/guard/roles.guard';
+import { Plan, Role } from '@prisma/client';
+import { RequirePlan } from './auth/decorator/plan.decorator';
+import { PlanGuard } from './auth/guard/plan.guard';
 
 @Controller()
 export class AppController {
@@ -10,17 +15,29 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
-}
 
-@Controller('fishes')
-export class FishController {
+  @Roles(Role.ADMIN) 
+  @UseGuards(AuthGuard('jwt'), RolesGuard) 
+  @Get('admin')
+  getAdminPanel(@Request() req) {
+    return {
+      mensagem: 'Bem-vindo ao Painel Secreto de Administrador!',
+      utilizador: req.user,
+    };
+  }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get('secret')
-  getSecretFishes(@Request() req) {
+  @Get('perfil')
+  getProfile(@Request() req) {
+    return req.user;
+  }
+
+  @RequirePlan(Plan.PREMIUM)
+  @UseGuards(AuthGuard('jwt'), PlanGuard)
+  @Get('peixes-raros')
+  getPremiumContent() {
     return {
-      message: 'Acesso liberado aos peixes raros!',
-      user: req.user,
+      mensagem: 'Acesso concedido! Você está vendo o radar de peixes raros.',
     };
   }
 }
