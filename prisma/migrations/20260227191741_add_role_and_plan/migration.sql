@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "plan" "Plan" NOT NULL DEFAULT 'FREEMIUM',
+ADD COLUMN     "role" "Role" NOT NULL DEFAULT 'USER';

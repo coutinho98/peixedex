@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+
+-- CreateEnum
+CREATE TYPE "Plan" AS ENUM ('FREEMIUM', 'PREMIUMFREEMIUM', 'PREMIUM');
