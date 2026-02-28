@@ -45,7 +45,7 @@ export class AuthService {
             throw new ConflictException('Invalid credentials');
         }
 
-        const pwMatches = await bcrypt.compare(dto.password, user.password, );
+        const pwMatches = await bcrypt.compare(dto.password, user.password,);
 
         if (!pwMatches) {
             throw new ConflictException('Invalid credentials');
@@ -54,5 +54,21 @@ export class AuthService {
         const payload = { sub: user.id, email: user.email, role: user.role, plan: user.plan };
         const token = await this.jwtService.signAsync(payload);
         return { access_token: token };
+    }
+
+    async getToken(userId: number, email: string, role: string, plan: string) {
+        const [at, rt] = await Promise.all([
+            this.jwtService.signAsync({ sub: userId, email, role, plan }, { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }),
+            this.jwtService.signAsync({ sub: userId, email, role, plan }, { expiresIn: '7d', secret: process.env.REFRESH_TOKEN_SECRET }),
+        ]);
+        return { access_token: at, refresh_token: rt };
+    }
+
+    async updateRtHash(userId: string, rt: string) {
+        const hash = await bcrypt.hash(rt, 10);
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { hashedRt: hash },
+        });
     }
 }
