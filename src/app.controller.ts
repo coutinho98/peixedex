@@ -21,7 +21,7 @@ export class AppController {
   @Get('admin')
   getAdminPanel(@Request() req) {
     return {
-      mensagem: 'Bem-vindo ao Painel Secreto de Administrador!',
+      mensagem: 'welcome back Shadys :)!',
       utilizador: req.user,
     };
   }
@@ -37,7 +37,7 @@ export class AppController {
   @Get('peixes-raros')
   getPremiumContent() {
     return {
-      mensagem: 'Acesso concedido! Você está vendo o radar de peixes raros.',
+      mensagem: 'Test - fish foudned :))',
     };
   }
 }
