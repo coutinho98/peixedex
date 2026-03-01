@@ -15,6 +15,8 @@ describe('AuthService', () => {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
 
@@ -52,7 +54,7 @@ describe('AuthService', () => {
     jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({
       id: '1',
       email: 'mateus@teste.com',
-      password: password, 
+      password: password,
       role: 'USER',
       plan: 'FREEMIUM',
     } as any);
@@ -64,6 +66,7 @@ describe('AuthService', () => {
     const result = await service.signIn(dto);
 
     expect(result).toHaveProperty('access_token');
+    expect(result).toHaveProperty('refresh_token');
     expect(result.access_token).toBe('fake_token');
   });
 });

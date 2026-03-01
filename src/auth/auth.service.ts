@@ -1,8 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthDto } from './dto/auth.dto';
+import { Tokens } from './types/tokens.type';
 
 @Injectable()
 export class AuthService {
@@ -29,11 +30,9 @@ export class AuthService {
             }
         });
 
-        const { password, ...userWithoutPassword } = user;
-
-        return {
-            user: userWithoutPassword,
-        };
+        const tokens = await this.getToken(user.id, user.email, user.role, user.plan);
+        await this.updateRtHash(user.id, tokens.refresh_token);
+        return tokens;
     }
 
     async signIn(dto: AuthDto) {
@@ -51,12 +50,12 @@ export class AuthService {
             throw new ConflictException('Invalid credentials');
         }
 
-        const payload = { sub: user.id, email: user.email, role: user.role, plan: user.plan };
-        const token = await this.jwtService.signAsync(payload);
-        return { access_token: token };
+        const tokens = await this.getToken(user.id, user.email, user.role, user.plan);
+        await this.updateRtHash(user.id, tokens.refresh_token);
+        return tokens;
     }
 
-    async getToken(userId: number, email: string, role: string, plan: string) {
+    async getToken(userId: string, email: string, role: string, plan: string): Promise<Tokens> {
         const [at, rt] = await Promise.all([
             this.jwtService.signAsync({ sub: userId, email, role, plan }, { expiresIn: '15m', secret: process.env.ACCESS_TOKEN_SECRET }),
             this.jwtService.signAsync({ sub: userId, email, role, plan }, { expiresIn: '7d', secret: process.env.REFRESH_TOKEN_SECRET }),
@@ -70,5 +69,37 @@ export class AuthService {
             where: { id: userId },
             data: { hashedRt: hash },
         });
+    }
+
+    async logout(userId: string) {
+        await this.prisma.user.updateMany({
+            where: {
+                id: userId,
+                hashedRt: { not: null },
+            },
+            data: {
+                hashedRt: null,
+            },
+        });
+    }
+
+    async refreshTokens(userId: string, rt: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user || !user.hashedRt) {
+            throw new ForbiddenException('Access Denied');
+        }
+
+        const rtMatches = await bcrypt.compare(rt, user.hashedRt);
+        if (!rtMatches) {
+            throw new ForbiddenException('Access Denied');
+        }
+
+        const tokens = await this.getToken(user.id, user.email, user.role, user.plan);
+        await this.updateRtHash(user.id, tokens.refresh_token);
+
+        return tokens;
     }
 }
